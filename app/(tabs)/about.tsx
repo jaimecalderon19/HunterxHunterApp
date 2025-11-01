@@ -22,40 +22,86 @@ export default function AboutScreen() {
 
   const BASE_URL = 'https://balanceadorhxh-production.up.railway.app';
 
-  const eliminarCazador = async () => {
+  const eliminarCazador = () => {
+    console.log('🔥 Función eliminarCazador ejecutada');
+    
+    if (!cazador){
+      console.error('No hay cazador seleccionado');
+      // Para web, usar confirm nativo
+      if (typeof window !== 'undefined') {
+        window.alert('Error: No hay cazador seleccionado');
+      } else {
+        Alert.alert('Error', 'No hay cazador seleccionado');
+      }
+      return;
+    }
+
+    // Para web, usar confirm nativo
+    const confirmar = typeof window !== 'undefined' 
+      ? window.confirm(`¿Estás seguro de que quieres eliminar a ${cazador.nombre}?`)
+      : true;
+
+    if (confirmar) {
+      ejecutarEliminacion();
+    } else if (typeof window === 'undefined') {
+      // Solo mostrar Alert.alert en móvil
+      Alert.alert(
+        '¿Eliminar cazador?',
+        `¿Estás seguro de que quieres eliminar a ${cazador.nombre}?`,
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { 
+            text: 'Eliminar', 
+            style: 'destructive',
+            onPress: ejecutarEliminacion
+          }
+        ]
+      );
+    }
+  };
+
+  const ejecutarEliminacion = async () => {
     if (!cazador) return;
     
-    Alert.alert(
-      '¿Eliminar cazador?',
-      `¿Estás seguro de que quieres eliminar a ${cazador.nombre}?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { 
-          text: 'Eliminar', 
-          style: 'destructive',
-          onPress: async () => {
-            setLoading(true);
-            try {
-              const cazadorId = cazador.id || cazador._id;
-              const response = await fetch(`${BASE_URL}/balanceador/cazadores/${cazadorId}`, {
-                method: 'DELETE',
-              });
-              
-              if (response.ok) {
-                Alert.alert('Éxito', 'Cazador eliminado correctamente');
-                setCazador(null);
-              } else {
-                Alert.alert('Error', 'No se pudo eliminar el cazador');
-              }
-            } catch (error) {
-              Alert.alert('Error', 'Error al conectar con el servidor');
-            } finally {
-              setLoading(false);
-            }
-          }
+    console.log('🗑️ Iniciando eliminación del cazador');
+    setLoading(true);
+    try {
+      const cazadorId = cazador.id || cazador._id;
+      console.log('🆔 ID del cazador:', cazadorId);
+      
+      const response = await fetch(`${BASE_URL}/balanceador/cazadores/${cazadorId}`, {
+        method: 'DELETE',
+      });
+      
+      console.log('📡 Respuesta del servidor:', response.status);
+      
+      if (response.ok) {
+        // Para web, usar alert nativo
+        if (typeof window !== 'undefined') {
+          window.alert('✅ Cazador eliminado correctamente');
+        } else {
+          Alert.alert('Éxito', 'Cazador eliminado correctamente');
         }
-      ]
-    );
+        setCazador(null);
+      } else {
+        const errorData = await response.text();
+        console.error('❌ Error del servidor:', errorData);
+        if (typeof window !== 'undefined') {
+          window.alert('❌ Error: No se pudo eliminar el cazador');
+        } else {
+          Alert.alert('Error', 'No se pudo eliminar el cazador');
+        }
+      }
+    } catch (error) {
+      console.error('🚨 Error de conexión:', error);
+      if (typeof window !== 'undefined') {
+        window.alert('🚨 Error: No se pudo conectar con el servidor');
+      } else {
+        Alert.alert('Error', 'Error al conectar con el servidor');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!cazador) {
@@ -86,16 +132,17 @@ export default function AboutScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity 
-          style={[styles.button, styles.deleteButton]} 
-          onPress={eliminarCazador}
+          style={styles.deleteButtonSimple}
+          onPress={() => {
+            console.log('🎯 Botón eliminar presionado - Simple');
+            eliminarCazador();
+          }}
           disabled={loading}
+          activeOpacity={0.6}
         >
-          <View style={styles.buttonRow}>
-            <Ionicons name="trash" size={16} color="#fff" style={{ marginRight: 8 }} />
-            <Text style={styles.buttonText}>
-              {loading ? 'Eliminando...' : 'Eliminar cazador'}
-            </Text>
-          </View>
+          <Text style={styles.deleteButtonText}>
+            {loading ? '🔄 Eliminando...' : '🗑️ Eliminar cazador'}
+          </Text>
         </TouchableOpacity>
 
         <Modal visible={modalVisible} transparent animationType="slide">
@@ -214,5 +261,37 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#e2e8f0',
     marginBottom: 8,
+  },
+  buttonPressed: {
+    opacity: 0.7,
+    transform: [{ scale: 0.98 }],
+  },
+  deleteButtonInner: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+  },
+  deleteButtonSimple: {
+    backgroundColor: '#dc2626',
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    borderRadius: 25,
+    marginBottom: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+  },
+  deleteButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
 });

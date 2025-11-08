@@ -15,9 +15,9 @@ export type Cazador = {
 
 type CazadoresContextType = {
   cazador: Cazador | null;
-  setCazador: (cazador: Cazador | null) => void;
+  setCazador: React.Dispatch<React.SetStateAction<Cazador | null>>;
   cazadores: Cazador[];
-  setCazadores: (cazadores: Cazador[]) => void;
+  setCazadores: React.Dispatch<React.SetStateAction<Cazador[]>>;
 };
 
 const CazadoresContext = createContext<CazadoresContextType | undefined>(undefined);

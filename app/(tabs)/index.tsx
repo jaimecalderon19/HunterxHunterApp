@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
   StyleSheet,
   Text,
   TextInput,
@@ -14,8 +15,9 @@ export default function IndexScreen() {
   const [nombreBuscado, setNombreBuscado] = useState('');
   const [mensaje, setMensaje] = useState('');
   const [estado, setEstado] = useState<'info' | 'success' | 'error'>('info');
-  const { setCazador } = useCazadores();
+  const [loading, setLoading] = useState(false); // 🌀 Estado de carga
 
+  const { setCazador } = useCazadores();
   const BASE_URL = 'https://balanceadorhxh-production.up.railway.app';
 
   const buscarCazador = async () => {
@@ -25,22 +27,40 @@ export default function IndexScreen() {
       return;
     }
 
+    setLoading(true);
+    setMensaje('');
+    const startTime = Date.now();
+
     try {
       const response = await fetch(`${BASE_URL}/balanceador/cazadores/buscar?nombre=${nombreBuscado}`);
       const data = await response.json();
 
-      if (data.found && data.cazadores && data.cazadores.length > 0) {
-        setCazador(data.cazadores[0]);
-        setEstado('success');
-        setMensaje(`🎯 Cazador encontrado: ${data.cazadores[0].nombre}`);
-      } else {
-        setEstado('info');
-        setMensaje(data.message || 'Cazador no encontrado');
-      }
+      const elapsed = Date.now() - startTime;
+      const remaining = Math.max(4000 - elapsed, 0); // 🕒 Asegurar mínimo 4s
+
+      // Espera lo que falte para completar 4 segundos
+      setTimeout(() => {
+        if (data.found && data.cazadores && data.cazadores.length > 0) {
+          setCazador(data.cazadores[0]);
+          setEstado('success');
+          setMensaje(`🎯 Cazador encontrado: ${data.cazadores[0].nombre}`);
+        } else {
+          setEstado('info');
+          setMensaje(data.message || 'Cazador no encontrado');
+        }
+        setLoading(false);
+      }, remaining);
+
     } catch (error) {
       console.error('Error al buscar el cazador:', error);
-      setEstado('error');
-      setMensaje('⚠️ Error al conectar con el servidor');
+      const elapsed = Date.now() - startTime;
+      const remaining = Math.max(4000 - elapsed, 0);
+
+      setTimeout(() => {
+        setEstado('error');
+        setMensaje('⚠️ Error al conectar con el servidor');
+        setLoading(false);
+      }, remaining);
     }
   };
 
@@ -58,17 +78,26 @@ export default function IndexScreen() {
             value={nombreBuscado}
             onChangeText={setNombreBuscado}
             style={styles.input}
+            editable={!loading}
           />
         </View>
 
-        <TouchableOpacity onPress={buscarCazador} activeOpacity={0.8}>
+        <TouchableOpacity
+          onPress={buscarCazador}
+          activeOpacity={0.8}
+          disabled={loading}
+        >
           <LinearGradient
-            colors={['#facc15', '#f59e0b']}
+            colors={loading ? ['#facc15aa', '#f59e0baa'] : ['#facc15', '#f59e0b']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.button}
           >
-            <Text style={styles.buttonText}>Buscar</Text>
+            {loading ? (
+              <ActivityIndicator size="small" color="#1e293b" />
+            ) : (
+              <Text style={styles.buttonText}>Buscar</Text>
+            )}
           </LinearGradient>
         </TouchableOpacity>
 

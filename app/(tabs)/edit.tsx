@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 
 export default function EditScreen() {
-  const { cazador, setCazador } = useCazadores();
+const { cazador, setCazador, cazadores, setCazadores } = useCazadores();
   const [loading, setLoading] = useState(false);
   
   const [formData, setFormData] = useState({
@@ -83,54 +83,73 @@ export default function EditScreen() {
   };
 
   const actualizarCazador = async () => {
-    if (!cazador) {
-      Alert.alert('Error', 'No hay cazador seleccionado para editar');
-      return;
-    }
+  if (!cazador) {
+    Alert.alert('Error', 'No hay cazador seleccionado para editar');
+    return;
+  }
 
-    if (!validarFormulario()) return;
+  if (!validarFormulario()) return;
+  
+  setLoading(true);
+  try {
+    const habilidadesArray = formData.habilidades
+      .split(',')
+      .map(h => h.trim())
+      .filter(h => h.length > 0);
     
-    setLoading(true);
-    try {
-      const habilidadesArray = formData.habilidades
-        .split(',')
-        .map(h => h.trim())
-        .filter(h => h.length > 0);
-      
-      const cazadorActualizado = {
-        nombre: formData.nombre.trim(),
-        edad: Number(formData.edad),
-        altura: Number(formData.altura),
-        peso: Number(formData.peso),
-        genero: formData.genero,
-        tipoLicencia: formData.tipoLicencia,
-        habilidades: habilidadesArray,
-      };
+    const cazadorActualizado = {
+      nombre: formData.nombre.trim(),
+      edad: Number(formData.edad),
+      altura: Number(formData.altura),
+      peso: Number(formData.peso),
+      genero: formData.genero,
+      tipoLicencia: formData.tipoLicencia,
+      habilidades: habilidadesArray,
+    };
 
-      const cazadorId = cazador.id || cazador._id;
-      const response = await fetch(`${BASE_URL}/balanceador/cazadores/${cazadorId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(cazadorActualizado),
-      });
+    const cazadorId = cazador.id || cazador._id;
+    const response = await fetch(`${BASE_URL}/balanceador/cazadores/${cazadorId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(cazadorActualizado),
+    });
 
-      if (response.ok) {
-        const data = await response.json();
-        setCazador(data.cazador);
-        Alert.alert('Éxito', 'Cazador actualizado correctamente');
-      } else {
-        const error = await response.json();
-        Alert.alert('Error', error.message || 'No se pudo actualizar el cazador');
-      }
-    } catch (error) {
-      console.error('Error al actualizar cazador:', error);
-      Alert.alert('Error', 'Error al conectar con el servidor');
-    } finally {
-      setLoading(false);
+    if (response.ok) {
+      const data = await response.json();
+
+      const  cazadorActualizado = data.resultados[0].cazador;
+
+      setCazador(cazadorActualizado);
+
+      if (!cazadorActualizado) return; 
+
+      console.log('Cazador actualizado:', cazadorActualizado);
+
+        setCazadores((prev) =>
+            prev.map((c) => {
+
+                const id = cazadorActualizado.id ?? cazadorActualizado._id;
+
+                return c.id === id || c._id === id
+                    ? cazadorActualizado
+                    : c
+            })
+        );
+
+      Alert.alert('✅ Éxito', 'Cazador actualizado correctamente');
+    } else {
+      const error = await response.json();
+      Alert.alert('Error', error.message || 'No se pudo actualizar el cazador');
     }
-  };
+  } catch (error) {
+    console.error('Error al actualizar cazador:', error);
+    Alert.alert('Error', 'Error al conectar con el servidor');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const resetearFormulario = () => {
     if (cazador) {
